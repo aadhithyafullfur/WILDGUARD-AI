@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import alertSoundManager from '../../utils/alertSoundManager';
+import '../../utils/testAlerts'; // Import test utilities
 
 const WildguardDashboard = () => {
   // State for counters
@@ -63,9 +64,6 @@ const WildguardDashboard = () => {
   
   // State for emergency fire alert
   const [showFireAlert, setShowFireAlert] = useState(false);
-  
-  // State for sound control
-  const [soundEnabled, setSoundEnabled] = useState(true);
   
   const socketRef = useRef(null);
 
@@ -153,30 +151,25 @@ const WildguardDashboard = () => {
       // If it's a hunter alert, activate rangers
       if (alert.type === 'HUNTER') {
         activateRangersForHuntingIncident();
-        // Play alert sound
-        if (soundEnabled) {
-          alertSoundManager.playAlert('HUNTER');
-        }
       }
       
-      // If it's a fire alert, show emergency popup and play sound
+      // If it's a fire alert, show emergency popup and play alert sound
       if (alert.type === 'WILDFIRE' || alert.type === 'FIRE') {
+        console.log('🚨🔥 CRITICAL FIRE ALERT DETECTED');
+        console.log('Alert details:', alert);
         setShowFireAlert(true);
-        // Play fire alert sound with higher priority
-        if (soundEnabled) {
+        // Auto-play fire alert sound
+        try {
+          console.log('🔊 Attempting to play fire alert sound...');
           alertSoundManager.playAlert('WILDFIRE');
+          console.log('✅ Fire alert sound triggered');
+        } catch (error) {
+          console.error('❌ Error playing sound:', error);
         }
         // Auto-hide the alert after 10 seconds
         setTimeout(() => {
           setShowFireAlert(false);
         }, 10000);
-      }
-      
-      // Play alert sound for animals
-      if (['ELEPHANT', 'TIGER', 'DEER', 'BIRD', 'ANIMAL'].includes(alert.type)) {
-        if (soundEnabled) {
-          alertSoundManager.playAlert(alert.type);
-        }
       }
 
       // Remove new flag after 3 seconds
@@ -206,7 +199,7 @@ const WildguardDashboard = () => {
         socketRef.current.disconnect();
       }
     };
-  }, [soundEnabled]);
+  }, []);
 
   // Function to activate rangers when hunting incident is detected
   const activateRangersForHuntingIncident = () => {
@@ -240,12 +233,6 @@ const WildguardDashboard = () => {
         active: false
       })));
     }, 30000); // Reset after 30 seconds
-  };
-  
-  // Handler to toggle sound on/off
-  const toggleSound = () => {
-    setSoundEnabled(!soundEnabled);
-    alertSoundManager.toggleSound(!soundEnabled);
   };
   
   // Helper function to format uptime
@@ -455,23 +442,13 @@ const WildguardDashboard = () => {
         <div className="h-1 bg-gradient-to-r from-emerald-500 to-emerald-700 rounded-full"></div>
         
         <div className="flex justify-end mt-4">
-          <div className="flex gap-2">
-            <button 
-              onClick={toggleSound}
-              className={`px-4 py-2 ${soundEnabled ? 'bg-emerald-700 hover:bg-emerald-600 border-emerald-500/50' : 'bg-gray-700 hover:bg-gray-600 border-gray-500/50'} text-white rounded-lg transition-colors duration-300 flex items-center space-x-2 border`}
-              title={soundEnabled ? 'Sound Enabled - Click to Disable' : 'Sound Disabled - Click to Enable'}
-            >
-              <span>{soundEnabled ? '🔊' : '🔇'}</span>
-              <span>{soundEnabled ? 'SOUND ON' : 'SOUND OFF'}</span>
-            </button>
-            <button 
-              onClick={handleReset}
-              className="px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg transition-colors duration-300 flex items-center space-x-2 border border-red-500/50"
-            >
-              <span>🔄</span>
-              <span>RESET COUNTS</span>
-            </button>
-          </div>
+          <button 
+            onClick={handleReset}
+            className="px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg transition-colors duration-300 flex items-center space-x-2 border border-red-500/50"
+          >
+            <span>🔄</span>
+            <span>RESET COUNTS</span>
+          </button>
         </div>
       </div>
 

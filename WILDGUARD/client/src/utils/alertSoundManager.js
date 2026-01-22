@@ -1,156 +1,223 @@
 /**
  * Alert Sound Manager
  * Handles playing audio alerts for different detection types
+ * Uses Web Audio API with proper context handling
  */
 
 class AlertSoundManager {
   constructor() {
-    this.audioContexts = {};
+    this.audioContext = null;
     this.isEnabled = true;
+    this.contextResumed = false;
   }
 
   /**
-   * Initialize audio contexts for different alert types
+   * Initialize audio context on first user interaction
    */
-  initializeSounds() {
+  initializeContext() {
+    if (this.audioContext) return;
+
     try {
-      // Initialize critical alert sound (for fire and hunters)
-      this.audioContexts.critical = this.createCriticalAlertSound();
-      // Initialize warning alert sound (for animals)
-      this.audioContexts.warning = this.createWarningAlertSound();
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      this.audioContext = new AudioContext();
+      
+      // Resume context if suspended (required by browsers for autoplay policy)
+      if (this.audioContext.state === 'suspended') {
+        this.audioContext.resume().then(() => {
+          console.log('✅ Audio context resumed');
+          this.contextResumed = true;
+        }).catch(error => {
+          console.error('❌ Failed to resume audio context:', error);
+        });
+      } else {
+        this.contextResumed = true;
+      }
+      
+      console.log('✅ Audio context initialized');
     } catch (error) {
-      console.error('Error initializing alert sounds:', error);
+      console.error('❌ Error initializing audio context:', error);
     }
   }
 
   /**
-   * Create critical alert sound (loud, urgent siren-like tone)
-   * Used for: WILDFIRE, HUNTER
+   * Ensure audio context is ready
    */
-  createCriticalAlertSound() {
-    return new Audio('data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAAB9AAACABAAZGF0YQIAAAAAAA==');
-  }
+  ensureContextReady() {
+    if (!this.audioContext) {
+      this.initializeContext();
+    }
 
-  /**
-   * Create warning alert sound (melodic tone)
-   * Used for: Animals, Deer, Birds, etc.
-   */
-  createWarningAlertSound() {
-    return new Audio('data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAAB9AAACABAAZGF0YQIAAAAAAA==');
+    // Resume if suspended
+    if (this.audioContext && this.audioContext.state === 'suspended') {
+      this.audioContext.resume().catch(e => console.error('Resume error:', e));
+    }
+
+    return this.audioContext;
   }
 
   /**
    * Play alert sound based on detection type
-   * Supports synthetic audio generation
    */
   playAlert(alertType) {
-    if (!this.isEnabled) return;
+    if (!this.isEnabled) {
+      console.log('🔇 Sound is disabled');
+      return;
+    }
+
+    console.log(`🔊 Playing alert sound for: ${alertType}`);
+
+    const context = this.ensureContextReady();
+    if (!context) {
+      console.error('❌ Audio context not available');
+      return;
+    }
 
     try {
       switch (alertType?.toUpperCase()) {
         case 'WILDFIRE':
         case 'FIRE':
-          this.playCriticalAlert('fire');
+          this.playCriticalAlert(context, 'fire');
           break;
         case 'HUNTER':
         case 'PERSON':
-          this.playCriticalAlert('hunter');
+          this.playCriticalAlert(context, 'hunter');
           break;
         case 'ELEPHANT':
         case 'TIGER':
         case 'ANIMAL':
         case 'DEER':
         case 'BIRD':
-          this.playWarningAlert(alertType);
+          this.playWarningAlert(context, alertType);
           break;
         default:
-          this.playWarningAlert('alert');
+          this.playWarningAlert(context, 'alert');
       }
     } catch (error) {
-      console.error('Error playing alert sound:', error);
+      console.error('❌ Error playing alert sound:', error);
     }
   }
 
   /**
-   * Play critical alert sound with oscillator (works in all browsers)
+   * Play critical alert sound with oscillator (fire/hunter)
    */
-  playCriticalAlert(type) {
+  playCriticalAlert(context, type) {
     try {
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const now = context.currentTime;
       
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
       
       oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
+      gainNode.connect(context.destination);
 
-      // Fire alert: alternating high-low tones
+      // Set waveform type for better sound
+      oscillator.type = 'sine';
+
       if (type === 'fire') {
-        oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-        oscillator.frequency.setValueAtTime(1200, audioContext.currentTime + 0.15);
-        oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.3);
-        oscillator.frequency.setValueAtTime(1200, audioContext.currentTime + 0.45);
-      } 
-      // Hunter alert: rapid high-pitched tone
-      else {
-        oscillator.frequency.setValueAtTime(1000, audioContext.currentTime);
-        oscillator.frequency.setValueAtTime(1200, audioContext.currentTime + 0.1);
-        oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + 0.2);
-      }
-
-      // Set volume
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 1.5);
-
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 1.5);
-
-      // Play 2 short alerts for fire
-      if (type === 'fire') {
-        setTimeout(() => {
-          this.playCriticalAlert('hunter');
-        }, 600);
+        // Fire alert: alternating high-low tones with modulation
+        console.log('🔥 Playing FIRE critical alert');
+        
+        // First tone
+        oscillator.frequency.setValueAtTime(900, now);
+        oscillator.frequency.linearRampToValueAtTime(1100, now + 0.2);
+        
+        // Second tone
+        oscillator.frequency.setValueAtTime(700, now + 0.25);
+        oscillator.frequency.linearRampToValueAtTime(900, now + 0.45);
+        
+        // Third tone
+        oscillator.frequency.setValueAtTime(1100, now + 0.5);
+        oscillator.frequency.linearRampToValueAtTime(800, now + 0.7);
+        
+        // Fourth tone
+        oscillator.frequency.setValueAtTime(950, now + 0.75);
+        oscillator.frequency.linearRampToValueAtTime(1150, now + 0.95);
+        
+        // Set volume with fade out
+        gainNode.gain.setValueAtTime(0.5, now);
+        gainNode.gain.linearRampToValueAtTime(0.3, now + 0.5);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 2.0);
+        
+        oscillator.start(now);
+        oscillator.stop(now + 2.0);
+        
+        // Play second sequence
+        setTimeout(() => this.playCriticalAlert(context, 'hunter'), 1200);
+        
+      } else if (type === 'hunter') {
+        // Hunter alert: rapid high-pitched staccato tones
+        console.log('👤 Playing HUNTER critical alert');
+        
+        const duration = 0.15;
+        const gap = 0.05;
+        
+        for (let i = 0; i < 4; i++) {
+          const startTime = now + (i * (duration + gap));
+          const endTime = startTime + duration;
+          
+          // Create oscillator for each tone
+          const osc = context.createOscillator();
+          const gain = context.createGain();
+          
+          osc.connect(gain);
+          gain.connect(context.destination);
+          osc.type = 'sine';
+          
+          osc.frequency.setValueAtTime(1200, startTime);
+          osc.frequency.linearRampToValueAtTime(1400, endTime);
+          
+          gain.gain.setValueAtTime(0.4, startTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, endTime);
+          
+          osc.start(startTime);
+          osc.stop(endTime);
+        }
       }
     } catch (error) {
-      console.error('Error playing critical alert:', error);
+      console.error('❌ Error playing critical alert:', error);
     }
   }
 
   /**
-   * Play warning alert sound (melodic beeps)
+   * Play warning alert sound (melodic beeps for animals)
    */
-  playWarningAlert(animalType) {
+  playWarningAlert(context, animalType) {
     try {
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const now = context.currentTime;
+      console.log(`🎵 Playing WARNING alert for: ${animalType}`);
       
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-
       // Different frequencies for different animals
       const frequencies = {
-        'ELEPHANT': 400,
-        'TIGER': 500,
-        'DEER': 600,
-        'BIRD': 700,
-        'alert': 550
+        'ELEPHANT': { base: 400, high: 500 },
+        'TIGER': { base: 500, high: 650 },
+        'DEER': { base: 600, high: 750 },
+        'BIRD': { base: 700, high: 850 },
+        'ANIMAL': { base: 550, high: 700 },
+        'ALERT': { base: 550, high: 700 }
       };
 
-      const freq = frequencies[animalType?.toUpperCase()] || 550;
+      const freq = frequencies[animalType?.toUpperCase()] || frequencies['ALERT'];
       
-      oscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
-      oscillator.frequency.setValueAtTime(freq + 200, audioContext.currentTime + 0.1);
-      oscillator.frequency.setValueAtTime(freq, audioContext.currentTime + 0.2);
-
-      gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8);
-
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.8);
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(context.destination);
+      oscillator.type = 'sine';
+      
+      // Two tone beep
+      oscillator.frequency.setValueAtTime(freq.base, now);
+      oscillator.frequency.linearRampToValueAtTime(freq.high, now + 0.15);
+      oscillator.frequency.linearRampToValueAtTime(freq.base, now + 0.3);
+      
+      gainNode.gain.setValueAtTime(0.3, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.8);
+      
+      oscillator.start(now);
+      oscillator.stop(now + 0.8);
+      
     } catch (error) {
-      console.error('Error playing warning alert:', error);
+      console.error('❌ Error playing warning alert:', error);
     }
   }
 
@@ -159,6 +226,7 @@ class AlertSoundManager {
    */
   toggleSound(enabled) {
     this.isEnabled = enabled;
+    console.log(`🔊 Sound ${enabled ? 'enabled' : 'disabled'}`);
   }
 
   /**
@@ -167,18 +235,30 @@ class AlertSoundManager {
   getSoundEnabled() {
     return this.isEnabled;
   }
+
+  /**
+   * Get audio context state
+   */
+  getContextState() {
+    return this.audioContext ? this.audioContext.state : 'not-initialized';
+  }
 }
 
 // Create singleton instance
 const alertSoundManager = new AlertSoundManager();
 
-// Initialize on first interaction (due to browser autoplay policy)
-if (typeof window !== 'undefined') {
-  document.addEventListener('click', () => {
-    if (!alertSoundManager.audioContexts.critical) {
-      alertSoundManager.initializeSounds();
-    }
-  }, { once: true });
+// Initialize context on first user interaction (required for browser autoplay policy)
+if (typeof document !== 'undefined') {
+  const initAudio = () => {
+    alertSoundManager.initializeContext();
+    document.removeEventListener('click', initAudio);
+    document.removeEventListener('keydown', initAudio);
+    document.removeEventListener('touchstart', initAudio);
+  };
+  
+  document.addEventListener('click', initAudio, { once: true });
+  document.addEventListener('keydown', initAudio, { once: true });
+  document.addEventListener('touchstart', initAudio, { once: true });
 }
 
 export default alertSoundManager;
