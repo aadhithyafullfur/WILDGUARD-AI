@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Socket.IO Test</title>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>Socket.IO Connection Test</h1>
+    <div id="status">Connecting...</div>
+    <div id="messages"></div>
+
+    <script>
+        const socket = io('http://localhost:5000');
+        const statusDiv = document.getElementById('status');
+        const messagesDiv = document.getElementById('messages');
+
+        socket.on('connect', () => {
+            statusDiv.innerHTML = '<span style="color: green;">Connected!</span>';
+            console.log('Connected to server');
+        });
+
+        socket.on('disconnect', () => {
+            statusDiv.innerHTML = '<span style="color: red;">Disconnected</span>';
+            console.log('Disconnected from server');
+        });
+
+        socket.on('detection_alert', (data) => {
+            console.log('Detection alert received:', data);
+            const message = document.createElement('div');
+            message.innerHTML = `<strong>Detection Alert:</strong> ${JSON.stringify(data)}`;
+            messagesDiv.appendChild(message);
+        });
+
+        socket.on('counters_update', (data) => {
+            console.log('Counters update received:', data);
+            const message = document.createElement('div');
+            message.innerHTML = `<strong>Counters Update:</strong> ${JSON.stringify(data)}`;
+            messagesDiv.appendChild(message);
+        });
+
+        // Test sending a request for counters
+        setTimeout(() => {
+            socket.emit('request_counters');
+        }, 1000);
+    </script>
+</body>
+</html>

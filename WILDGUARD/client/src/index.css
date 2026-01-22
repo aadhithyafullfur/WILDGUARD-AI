@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base theme */
+body {
+  background-color: #000;
+  color: #ffffff;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Glass container */
+.glass {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(124, 255, 155, 0.4);
+  border-radius: 16px;
+}
+
+/* Inputs */
+.input {
+  @apply w-full px-4 py-2 mb-4 bg-transparent 
+         border border-green-400 text-white rounded-md
+         focus:outline-none focus:ring-2 focus:ring-green-400;
+}
+
+/* Primary button */
+.btn-primary {
+  @apply w-full py-2 bg-green-400 text-black font-semibold rounded-md
+         hover:bg-green-300 transition duration-300;
+}
+
+/* Secondary text / links */
+.link {
+  @apply text-green-400 cursor-pointer hover:text-green-300 underline;
+}
