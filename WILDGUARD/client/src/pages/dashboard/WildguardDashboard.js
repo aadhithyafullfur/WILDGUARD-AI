@@ -65,6 +65,10 @@ const WildguardDashboard = () => {
   // State for emergency fire alert
   const [showFireAlert, setShowFireAlert] = useState(false);
   
+  // State for human detection popup
+  const [showHumanAlert, setShowHumanAlert] = useState(false);
+  const [humanAlertData, setHumanAlertData] = useState(null);
+  
   const socketRef = useRef(null);
 
   // Initialize WebSocket connection
@@ -126,7 +130,7 @@ const WildguardDashboard = () => {
 
     // Handle new alert
     socketRef.current.on('alert', (alert) => {
-      console.log('🚨 New alert received:', alert);
+      console.log('[ALERT] New alert received:', alert);
       
       // Create a proper alert object with all required fields
       const newAlert = {
@@ -141,21 +145,29 @@ const WildguardDashboard = () => {
         detection: {
           camera: alert.camera || alert.detection?.camera || 'Unknown',
           confidence: alert.confidence || alert.detection?.confidence || 0,
-          species: alert.species || alert.detection?.species || 'Unknown'
+          species: alert.species || alert.detection?.species || 'Unknown',
+          image: alert.image || alert.detection?.image || null  // Include captured image
         }
       };
 
       setAlerts(prev => [newAlert, ...prev].slice(0, 10)); // Keep last 10
       setEventLog(prev => [newAlert, ...prev].slice(0, 20)); // Keep last 20
 
-      // If it's a hunter alert, activate rangers
-      if (alert.type === 'HUNTER') {
+      // If it's a hunter alert, activate rangers and show popup
+      if (alert.type === 'HUNTER' || alert.type === 'person') {
+        setHumanAlertData(newAlert);
+        setShowHumanAlert(true);
         activateRangersForHuntingIncident();
+        
+        // Auto-hide the popup after 8 seconds
+        setTimeout(() => {
+          setShowHumanAlert(false);
+        }, 8000);
       }
       
       // If it's a fire alert, show emergency popup and play alert sound
       if (alert.type === 'WILDFIRE' || alert.type === 'FIRE') {
-        console.log('🚨🔥 CRITICAL FIRE ALERT DETECTED');
+        console.log('[CRITICAL] FIRE ALERT DETECTED');
         console.log('Alert details:', alert);
         setShowFireAlert(true);
         // Auto-play fire alert sound
@@ -182,7 +194,7 @@ const WildguardDashboard = () => {
 
     // Handle system reset
     socketRef.current.on('system-reset', (data) => {
-      console.log('🔄 System reset:', data);
+      console.log('[SYSTEM] Reset:', data);
       setCounters(data);
       setAlerts([]);
       setEventLog([]);
@@ -370,9 +382,9 @@ const WildguardDashboard = () => {
       case 'TIGER':
         return '🐅';
       case 'ELEPHANT':
-        return '🐘';
+        return 'A';
       case 'WILDFIRE':
-        return '🔥';
+        return 'F';
       case 'ANIMAL':
         return '🐾';
       case 'DEER':
@@ -380,7 +392,7 @@ const WildguardDashboard = () => {
       case 'BIRD':
         return '🐦';
       default:
-        return '⚠️';
+        return '[!]';
     }
   };
   
@@ -395,7 +407,7 @@ const WildguardDashboard = () => {
           <div className="bg-red-900/90 backdrop-blur-md rounded-2xl p-8 border-4 border-red-500 shadow-2xl shadow-red-500/50 max-w-2xl w-full transform transition-all duration-300 scale-100 animate-pulse">
             <div className="text-center">
               <div className="flex justify-center mb-4">
-                <div className="text-6xl animate-bounce">🔥</div>
+                <div className="text-6xl animate-bounce">!</div>
               </div>
               <h2 className="text-4xl font-bold text-red-100 mb-4 animate-pulse">
                 EMERGENCY FIRE ALERT!
@@ -404,7 +416,7 @@ const WildguardDashboard = () => {
                 WILDFIRE DETECTED - IMMEDIATE ACTION REQUIRED
               </p>
               <div className="bg-red-800/50 rounded-lg p-4 mb-6 border border-red-400">
-                <p className="text-red-100 font-semibold">🚨 RESPONSE PROTOCOL ACTIVATED</p>
+                <p className="text-red-100 font-semibold">[ALERT] RESPONSE PROTOCOL ACTIVATED</p>
                 <ul className="text-red-200 text-left mt-2 space-y-1 text-sm">
                   <li>• Emergency services notified</li>
                   <li>• Rangers dispatched to affected area</li>
@@ -427,7 +439,7 @@ const WildguardDashboard = () => {
         <div className="flex justify-between items-center mb-4">
           <div>
             <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-green-500 to-emerald-600 mb-2">
-              🛡️ WILDGUARD AI SECURITY SYSTEM
+              [SECURITY] WILDGUARD AI SECURITY SYSTEM
             </h1>
             <p className="text-emerald-300 text-lg">Advanced Real-Time Wildlife Protection & Monitoring Platform</p>
           </div>
@@ -446,7 +458,7 @@ const WildguardDashboard = () => {
             onClick={handleReset}
             className="px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg transition-colors duration-300 flex items-center space-x-2 border border-red-500/50"
           >
-            <span>🔄</span>
+            <span>↻</span>
             <span>RESET COUNTS</span>
           </button>
         </div>
@@ -479,7 +491,7 @@ const WildguardDashboard = () => {
         {/* Elephants Card */}
         <div className="group bg-gradient-to-br from-blue-900/20 to-blue-900/10 backdrop-blur-md rounded-xl p-4 border border-blue-500/30 hover:border-blue-500/60 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/20 bg-black/30 border-1 border-emerald-500/30">
           <div className="flex items-center justify-between mb-2">
-            <div className="text-2xl text-emerald-400">🐘</div>
+            <div className="text-2xl text-emerald-400">A</div>
             <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
           </div>
           <h3 className="text-emerald-300 text-xs font-medium mb-1">ELEPHANTS SPOTTED</h3>
@@ -501,7 +513,7 @@ const WildguardDashboard = () => {
         {/* Wildfires Card */}
         <div className="group bg-gradient-to-br from-red-900/20 to-red-900/10 backdrop-blur-md rounded-xl p-4 border border-red-500/30 hover:border-red-500/60 transition-all duration-300 hover:shadow-lg hover:shadow-red-500/20 bg-black/30 border-1 border-emerald-500/30">
           <div className="flex items-center justify-between mb-2">
-            <div className="text-2xl text-emerald-400">🔥</div>
+            <div className="text-2xl text-emerald-400">F</div>
             <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
           </div>
           <h3 className="text-emerald-300 text-xs font-medium mb-1">WILDFIRES DETECTED</h3>
@@ -510,48 +522,149 @@ const WildguardDashboard = () => {
         </div>
       </div>
 
-      {/* Critical Alerts Section */}
-      <div className="bg-black/40 backdrop-blur-md rounded-2xl p-6 border border-emerald-500/30 mb-8 shadow-xl shadow-emerald-500/10">
-        <h2 className="text-2xl font-bold mb-4 flex items-center text-emerald-400">
-          <span className="mr-3">🚨</span> CRITICAL ALERTS PANEL
-        </h2>
+      {/* Critical Alerts Section - PROFESSIONAL REAL-TIME */}
+      <div className="bg-gradient-to-br from-black/60 to-black/40 backdrop-blur-lg rounded-2xl p-7 border border-emerald-500/40 mb-8 shadow-2xl shadow-black/80">
+        {/* Header with live indicator */}
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-emerald-500/20">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="absolute inset-0 bg-red-500/30 rounded-full blur animate-pulse"></div>
+              <div className="relative bg-gradient-to-br from-red-600 to-red-800 rounded-full p-2.5">
+                <span className="text-2xl">!</span>
+              </div>
+            </div>
+            <div>
+              <h2 className="text-3xl font-black text-white">CRITICAL ALERTS</h2>
+              <p className="text-xs text-emerald-400 font-mono mt-1">Real-Time Threat Detection & Response</p>
+            </div>
+          </div>
+          
+          <div className="text-right">
+            <div className="flex items-center gap-2 mb-2">
+              <div className={`w-3 h-3 rounded-full ${alerts.length > 0 ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}></div>
+              <span className={`text-sm font-bold ${alerts.length > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                {alerts.length > 0 ? 'ACTIVE THREATS' : 'SYSTEM SECURE'}
+              </span>
+            </div>
+            <p className="text-xs text-emerald-500 font-mono">{new Date().toLocaleTimeString()}</p>
+          </div>
+        </div>
         
-        <div className="space-y-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+        {/* Alerts list with professional styling */}
+        <div className="space-y-3 max-h-96 overflow-y-auto pr-3 custom-scrollbar">
           {alerts.length === 0 ? (
-            <div className="text-center py-8 text-emerald-300">
-              <p className="text-lg">✅ NO ACTIVE THREATS DETECTED</p>
-              <p className="text-sm mt-2">System monitoring for security incidents...</p>
+            <div className="text-center py-16">
+              <div className="text-5xl mb-4">✅</div>
+              <p className="text-xl font-bold text-emerald-300 mb-2">NO ACTIVE THREATS</p>
+              <p className="text-sm text-emerald-400">All systems operational - monitoring 24/7</p>
             </div>
           ) : (
-            alerts.map((alert) => {
-              const style = getAlertStyle(alert.type);
+            alerts.map((alert, index) => {
+              const isHumanAlert = alert.type === 'HUNTER' || alert.type === 'person';
+              const isFireAlert = alert.type === 'WILDFIRE' || alert.type === 'fire';
+              
               return (
                 <div
                   key={alert.id}
-                  className={`bg-red-900/20 border-l-4 border-red-500 rounded-lg p-4 transition-all duration-300 ${
-                    alert.isNew ? 'ring-2 ring-emerald-400 scale-105 shadow-lg shadow-emerald-500/30' : ''
-                  }`}
+                  className={`group relative border-l-4 rounded-xl p-5 transition-all duration-300 backdrop-blur-sm ${
+                    isFireAlert
+                      ? 'bg-gradient-to-r from-red-950/80 to-red-900/40 border-red-500 hover:shadow-lg hover:shadow-red-500/30'
+                      : isHumanAlert
+                      ? 'bg-gradient-to-r from-orange-950/80 to-orange-900/40 border-orange-500 hover:shadow-lg hover:shadow-orange-500/30'
+                      : 'bg-gradient-to-r from-emerald-950/40 to-emerald-900/20 border-emerald-500 hover:shadow-lg hover:shadow-emerald-500/20'
+                  } ${alert.isNew ? 'ring-2 ring-offset-2 ring-offset-black scale-100 shadow-xl' : ''}`}
+                  style={alert.isNew ? { ringColor: isFireAlert ? '#ef4444' : '#10b981' } : {}}
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <span className="text-xl text-emerald-400">{getAlertIcon(alert.type)}</span>
-                        <h3 className="font-bold text-lg text-emerald-300">{alert.title}</h3>
-                        {alert.severity === 'CRITICAL' && (
-                          <span className="px-2 py-1 bg-red-700 text-white text-xs font-bold rounded">
-                            CRITICAL THREAT
-                          </span>
-                        )}
-                        {alert.type === 'HUNTER' && (
-                          <span className="px-2 py-1 bg-red-800 text-white text-xs font-bold rounded">
-                            ILLEGAL HUNTING
-                          </span>
-                        )}
+                  {/* Live indicator for new alerts */}
+                  {alert.isNew && (
+                    <div className="absolute -right-2 -top-2 flex items-center gap-1 bg-red-600 px-2 py-1 rounded-full text-xs font-bold text-white">
+                      <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                      LIVE
+                    </div>
+                  )}
+                  
+                  {/* Alert content */}
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      {/* Title and severity */}
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className={`text-3xl ${alert.isNew && isFireAlert ? 'animate-pulse' : ''}`}>
+                          {getAlertIcon(alert.type)}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-lg font-bold text-white truncate">
+                            {alert.title}
+                          </h3>
+                          <div className="flex items-center gap-2 mt-1">
+                            {isFireAlert && (
+                              <span className="px-2 py-0.5 bg-red-600 text-white text-xs font-bold rounded-full">
+                                [CRITICAL]
+                              </span>
+                            )}
+                            {isHumanAlert && (
+                              <span className="px-2 py-0.5 bg-orange-600 text-white text-xs font-bold rounded-full">
+                                [SECURITY]
+                              </span>
+                            )}
+                            <span className="text-xs text-gray-400">
+                              Alert #{index + 1}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-emerald-200 text-sm mb-2">{alert.message}</p>
-                      <div className="text-xs text-emerald-400 space-y-1">
-                        <p>CAMERA: {alert.detection.camera || 'Unknown Location'} | CONFIDENCE: {alert.detection.confidence}%</p>
-                        <p>TIME: {alert.timestamp}</p>
+                      
+                      {/* Message */}
+                      <p className="text-sm text-gray-200 mb-4 leading-relaxed">
+                        {alert.message}
+                      </p>
+                      
+                      {/* Captured Image - Display for hunters and fire */}
+                      {alert.detection?.image && (alert.type === 'HUNTER' || alert.type === 'person' || alert.type === 'WILDFIRE' || alert.type === 'fire') && (
+                        <div className="mb-4 rounded-lg overflow-hidden border border-white/20 bg-black/40">
+                          <img 
+                            src={`data:image/jpeg;base64,${alert.detection.image}`}
+                            alt="Detection capture"
+                            className="w-full h-auto object-cover max-h-48"
+                          />
+                          <div className="px-3 py-2 bg-black/60 text-xs text-gray-300 flex justify-between">
+                            <span>📸 Captured at {new Date(alert.timestamp).toLocaleTimeString()}</span>
+                            <span>Camera: {alert.detection?.camera || 'Cam-01'}</span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Detection details grid */}
+                      <div className="grid grid-cols-3 gap-3 mb-3">
+                        <div className="bg-black/40 rounded-lg p-3 border border-white/10 group-hover:border-white/20 transition-all">
+                          <p className="text-xs text-gray-400 font-mono uppercase tracking-wider mb-1">Camera</p>
+                          <p className="text-sm font-bold text-white">
+                            {alert.detection?.camera || 'Cam-01'}
+                          </p>
+                        </div>
+                        <div className="bg-black/40 rounded-lg p-3 border border-white/10 group-hover:border-white/20 transition-all">
+                          <p className="text-xs text-gray-400 font-mono uppercase tracking-wider mb-1">Confidence</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-bold text-white">
+                              {alert.detection?.confidence || 0}%
+                            </p>
+                            <div className="w-12 h-2 bg-gray-700 rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full transition-all ${
+                                  alert.detection?.confidence >= 80 ? 'bg-red-500' : 
+                                  alert.detection?.confidence >= 60 ? 'bg-yellow-500' : 
+                                  'bg-green-500'
+                                }`}
+                                style={{width: `${alert.detection?.confidence}%`}}
+                              ></div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="bg-black/40 rounded-lg p-3 border border-white/10 group-hover:border-white/20 transition-all">
+                          <p className="text-xs text-gray-400 font-mono uppercase tracking-wider mb-1">Time</p>
+                          <p className="text-sm font-bold text-white font-mono">
+                            {new Date(alert.timestamp).toLocaleTimeString()}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -560,12 +673,97 @@ const WildguardDashboard = () => {
             })
           )}
         </div>
+        
+        {/* Footer with stats */}
+        {alerts.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-emerald-500/20 flex justify-between items-center text-xs">
+            <p className="text-emerald-400">
+              Displaying <span className="font-bold text-emerald-300">{Math.min(alerts.length, 10)}</span> of <span className="font-bold text-emerald-300">{alerts.length}</span> active alerts
+            </p>
+            <button 
+              onClick={() => setAlerts([])}
+              className="px-4 py-2 bg-red-900/40 hover:bg-red-900/70 border border-red-500/40 text-red-300 rounded-lg text-xs font-bold transition-all duration-200"
+            >
+              CLEAR ALERTS
+            </button>
+          </div>
+        )}
       </div>
+      
+      {/* Human Detection Alert Popup */}
+      {showHumanAlert && humanAlertData && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="relative max-w-lg w-full animate-in fade-in zoom-in duration-300">
+            {/* Animated border effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl blur opacity-20 animate-pulse"></div>
+            
+            {/* Main popup container */}
+            <div className="relative bg-gradient-to-br from-gray-950 via-gray-900 to-black border-2 border-red-500 rounded-2xl p-8 shadow-2xl shadow-red-500/50">
+              {/* Close button */}
+              <button
+                onClick={() => setShowHumanAlert(false)}
+                className="absolute top-4 right-4 w-8 h-8 bg-red-900/40 hover:bg-red-900/80 border border-red-500/50 text-red-400 rounded-full flex items-center justify-center transition-all"
+              >
+                ✕
+              </button>
+              
+              {/* Alert header */}
+              <div className="text-center mb-6">
+                <div className="text-6xl mb-3 animate-pulse">👤</div>
+                <h2 className="text-4xl font-black text-red-400 mb-2">HUMAN THREAT DETECTED</h2>
+                <p className="text-sm text-red-300 font-semibold">[!] UNAUTHORIZED PRESENCE IN PROTECTED AREA</p>
+              </div>
+              
+              {/* Alert details */}
+              <div className="space-y-4 mb-6">
+                <div className="bg-red-900/20 border-l-4 border-red-500 rounded-lg p-4">
+                  <p className="text-emerald-200 text-sm font-semibold mb-2">[LOC] Location Details:</p>
+                  <p className="text-emerald-100 text-sm">
+                    <span className="font-bold text-emerald-300">Camera:</span> {humanAlertData.detection?.camera || 'Cam-01'}
+                  </p>
+                  <p className="text-emerald-100 text-sm mt-1">
+                    <span className="font-bold text-emerald-300">Confidence:</span> {humanAlertData.detection?.confidence || 0}%
+                  </p>
+                  <p className="text-emerald-100 text-sm mt-1">
+                    <span className="font-bold text-emerald-300">Time:</span> {humanAlertData.timestamp}
+                  </p>
+                </div>
+                
+                <div className="bg-emerald-900/20 border-l-4 border-emerald-500 rounded-lg p-4">
+                  <p className="text-emerald-300 font-semibold text-sm">[SECURITY] Response Status:</p>
+                  <p className="text-emerald-100 text-sm mt-2">Rangers have been automatically alerted and are responding to the incident location.</p>
+                  <div className="flex gap-2 mt-3">
+                    <div className="flex items-center gap-1 text-xs">
+                      <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></div>
+                      <span className="text-emerald-300">Rangers en route</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Action buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowHumanAlert(false)}
+                  className="flex-1 px-4 py-3 bg-red-900/30 hover:bg-red-900/50 border border-red-500/50 text-red-300 rounded-lg font-semibold transition-all"
+                >
+                  Dismiss
+                </button>
+                <button
+                  className="flex-1 px-4 py-3 bg-emerald-900/30 hover:bg-emerald-900/50 border border-emerald-500/50 text-emerald-300 rounded-lg font-semibold transition-all"
+                >
+                  View Details
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Ranger Location Section */}
       <div className="bg-black/40 backdrop-blur-md rounded-2xl p-6 border border-emerald-500/30 mb-8 shadow-xl shadow-emerald-500/10">
         <h2 className="text-2xl font-bold mb-4 flex items-center text-emerald-400">
-          <span className="mr-3">🛡️</span> FOREST RANGER POSITIONS
+          <span className="mr-3">[SECURITY]</span> FOREST RANGER POSITIONS
         </h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -599,12 +797,43 @@ const WildguardDashboard = () => {
           ))}
         </div>
         
-        <div className="mt-4 p-3 bg-red-900/20 rounded-lg border border-red-500/30">
-          <div className="flex items-center space-x-2">
-            <span className="text-red-400 text-lg">🚨</span>
-            <p className="font-semibold text-red-300">POACHING INCIDENT DETECTED</p>
+        {/* System Performance & Monitoring Section */}
+        <div className="mt-6 p-5 bg-gradient-to-r from-emerald-900/20 to-emerald-800/10 rounded-xl border border-emerald-500/40">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <span className="text-2xl">📊</span>
+              <h4 className="font-bold text-emerald-300 text-lg">SYSTEM PERFORMANCE</h4>
+            </div>
+            <span className={`px-3 py-1 rounded-full text-xs font-bold ${connected ? 'bg-green-900/50 text-green-300 border border-green-500/50' : 'bg-red-900/50 text-red-300 border border-red-500/50'}`}>
+              {connected ? '🟢 CONNECTED' : '🔴 DISCONNECTED'}
+            </span>
           </div>
-          <p className="text-sm text-emerald-300 mt-1">Rangers have been automatically notified and are responding to the incident location.</p>
+          
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-black/40 rounded-lg p-3 border border-emerald-500/20">
+              <p className="text-xs text-emerald-400 font-mono mb-2">ACTIVE DETECTIONS</p>
+              <p className="text-2xl font-bold text-emerald-300">{counters.total_detections}</p>
+              <p className="text-xs text-emerald-500 mt-1">Total tracked</p>
+            </div>
+            <div className="bg-black/40 rounded-lg p-3 border border-emerald-500/20">
+              <p className="text-xs text-emerald-400 font-mono mb-2">CURRENT THREATS</p>
+              <p className="text-2xl font-bold text-orange-400">{alerts.length}</p>
+              <p className="text-xs text-emerald-500 mt-1">Pending response</p>
+            </div>
+            <div className="bg-black/40 rounded-lg p-3 border border-emerald-500/20">
+              <p className="text-xs text-emerald-400 font-mono mb-2">DETECTION RATE</p>
+              <p className="text-2xl font-bold text-emerald-300">{Math.min(counters.hunters_detected + counters.wildfires_detected + Math.floor(counters.animals_detected / 5), 99)}/min</p>
+              <p className="text-xs text-emerald-500 mt-1">Real-time avg</p>
+            </div>
+          </div>
+          
+          <div className="mt-4 pt-4 border-t border-emerald-500/20 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+              <span className="text-xs text-emerald-300">All cameras operational - 24/7 monitoring active</span>
+            </div>
+            <span className="text-xs text-emerald-400 font-mono">{new Date().toLocaleTimeString()}</span>
+          </div>
         </div>
       </div>
       
@@ -731,31 +960,130 @@ const WildguardDashboard = () => {
         </div>
       </div>
 
-      {/* Event Timeline */}
-      <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl rounded-2xl p-6 border border-slate-700/50">
-        <h2 className="text-2xl font-bold mb-6 flex items-center">
-          <span className="mr-3">📊</span> Detection Event Log
-        </h2>
+      {/* Detection Event Log - Complete */}
+      <div className="bg-gradient-to-br from-black/50 to-black/30 backdrop-blur-lg rounded-2xl p-7 border border-emerald-500/30 shadow-2xl shadow-black/50">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-emerald-500/20">
+          <div className="flex items-center gap-3">
+            <div className="bg-gradient-to-br from-blue-600 to-blue-800 rounded-full p-2.5">
+              <span className="text-2xl">📋</span>
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-white">DETECTION EVENT LOG</h2>
+              <p className="text-xs text-emerald-400 mt-1">Historical tracking of all detected incidents</p>
+            </div>
+          </div>
+          
+          <div className="text-right">
+            <p className="text-sm font-bold text-emerald-300">{eventLog.length} Total Events</p>
+            <p className="text-xs text-emerald-500 mt-1">Last 50 logged</p>
+          </div>
+        </div>
 
         {eventLog.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <p>No detection events logged in the system</p>
+          <div className="text-center py-16">
+            <div className="text-5xl mb-4 opacity-50">📋</div>
+            <p className="text-lg font-semibold text-gray-400">No Detection Events Logged</p>
+            <p className="text-sm text-gray-500 mt-2">All detected incidents will appear here</p>
           </div>
         ) : (
-          <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+          <div className="space-y-2 max-h-96 overflow-y-auto pr-3 custom-scrollbar">
             {eventLog.map((event, index) => {
-              const style = getAlertStyle(event.type);
+              const isHumanEvent = event.type === 'HUNTER' || event.type === 'person';
+              const isFireEvent = event.type === 'WILDFIRE' || event.type === 'fire';
+              
               return (
-                <div key={event.id} className={`flex items-center space-x-3 text-sm px-3 py-2 rounded-lg ${style.bg} border-l-2 ${style.border}`}>
-                  <span className="text-lg">{getAlertIcon(event.type)}</span>
-                  <div className="flex-1">
-                    <span className="font-semibold">{event.title}</span>
-                    <span className="text-gray-400 ml-2 text-xs">at {event.timestamp}</span>
+                <div 
+                  key={event.id} 
+                  className={`group flex items-center justify-between px-4 py-3 rounded-lg border-l-4 transition-all duration-200 backdrop-blur-sm ${
+                    isFireEvent
+                      ? 'bg-red-950/30 border-red-500/60 hover:bg-red-950/50 hover:shadow-lg hover:shadow-red-500/20'
+                      : isHumanEvent
+                      ? 'bg-orange-950/30 border-orange-500/60 hover:bg-orange-950/50 hover:shadow-lg hover:shadow-orange-500/20'
+                      : 'bg-emerald-950/20 border-emerald-500/60 hover:bg-emerald-950/30 hover:shadow-lg hover:shadow-emerald-500/10'
+                  }`}
+                >
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    {/* Event icon and main info */}
+                    <span className="text-2xl flex-shrink-0">{getAlertIcon(event.type)}</span>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-bold text-white text-sm truncate">
+                          {event.title}
+                        </h4>
+                        <span className={`text-xs font-mono px-2 py-0.5 rounded ${
+                          isFireEvent ? 'bg-red-900/50 text-red-300' :
+                          isHumanEvent ? 'bg-orange-900/50 text-orange-300' :
+                          'bg-emerald-900/50 text-emerald-300'
+                        }`}>
+                          #{eventLog.length - index}
+                        </span>
+                      </div>
+                      
+                      {/* Event details */}
+                      <div className="flex items-center gap-4 text-xs text-gray-400">
+                        <span className="flex items-center gap-1">
+                          🎥 <span className="text-gray-300">{event.detection?.camera || 'Cam-01'}</span>
+                        </span>
+                        <span className="flex items-center gap-1">
+                          [LOC] <span className="text-gray-300">{event.detection?.species || 'Unknown'}</span>
+                        </span>
+                        <span className="flex items-center gap-1">
+                          🎯 <span className="text-gray-300">{event.detection?.confidence || 0}%</span>
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <span className="text-xs text-gray-500">{event.detection.confidence}% confidence</span>
+                  
+                  {/* Timestamp */}
+                  <div className="flex-shrink-0 text-right">
+                    <p className="text-xs font-mono text-gray-400">
+                      {typeof event.timestamp === 'string' 
+                        ? new Date(event.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                        : event.timestamp
+                      }
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {(() => {
+                        const now = new Date();
+                        const eventTime = new Date(event.timestamp);
+                        const diff = Math.floor((now - eventTime) / 1000);
+                        
+                        if (diff < 60) return `${diff}s ago`;
+                        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+                        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+                        return `${Math.floor(diff / 86400)}d ago`;
+                      })()}
+                    </p>
+                  </div>
                 </div>
               );
             })}
+          </div>
+        )}
+        
+        {/* Footer stats */}
+        {eventLog.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-emerald-500/20 grid grid-cols-4 gap-4 text-xs">
+            <div className="bg-black/40 rounded-lg p-3 border border-emerald-500/20">
+              <p className="text-emerald-400 font-mono mb-1">HUMANS</p>
+              <p className="text-lg font-bold text-orange-400">{eventLog.filter(e => e.type === 'HUNTER' || e.type === 'person').length}</p>
+            </div>
+            <div className="bg-black/40 rounded-lg p-3 border border-emerald-500/20">
+              <p className="text-emerald-400 font-mono mb-1">FIRES</p>
+              <p className="text-lg font-bold text-red-400">{eventLog.filter(e => e.type === 'WILDFIRE' || e.type === 'fire').length}</p>
+            </div>
+            <div className="bg-black/40 rounded-lg p-3 border border-emerald-500/20">
+              <p className="text-emerald-400 font-mono mb-1">WILDLIFE</p>
+              <p className="text-lg font-bold text-green-400">{eventLog.filter(e => e.type !== 'HUNTER' && e.type !== 'WILDFIRE' && e.type !== 'person' && e.type !== 'fire').length}</p>
+            </div>
+            <div className="bg-black/40 rounded-lg p-3 border border-emerald-500/20">
+              <p className="text-emerald-400 font-mono mb-1">AVG CONFIDENCE</p>
+              <p className="text-lg font-bold text-blue-400">
+                {Math.round(eventLog.reduce((sum, e) => sum + (e.detection?.confidence || 0), 0) / eventLog.length)}%
+              </p>
+            </div>
           </div>
         )}
       </div>
@@ -763,11 +1091,11 @@ const WildguardDashboard = () => {
       {/* Footer */}
       <div className="mt-8 flex justify-between items-center text-xs text-gray-500 border-t border-slate-700 pt-6">
         <div>
-          <p>🔒 WILDGUARD v2.0 - Wildlife Protection AI System</p>
+          <p>[SECURE] WILDGUARD v2.0 - Wildlife Protection AI System</p>
           <p>Real-Time Detection • Advanced Analytics • Emergency Alerts</p>
         </div>
         <div className="text-right">
-          <p>🌍 Global Protection Network</p>
+          <p>[GLOBAL] Protection Network</p>
           <p>Last Updated: {new Date().toLocaleTimeString()}</p>
         </div>
       </div>

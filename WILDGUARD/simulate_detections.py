@@ -63,7 +63,6 @@ def simulate_detections():
                 ('person', 'Human'),
                 ('animal', 'Elephant'),
                 ('animal', 'Tiger'),
-                ('animal', 'Deer'),
                 ('fire', 'Fire')
             ]
             
