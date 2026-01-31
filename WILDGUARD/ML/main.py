@@ -3,6 +3,7 @@ import requests
 import json
 import threading
 import base64
+import os
 from datetime import datetime
 from queue import Queue
 from camera_module import get_camera
@@ -10,7 +11,9 @@ from detection_module import detect
 from alert_module import send_alert
 
 # Configuration for sending data to backend
-API_BASE_URL = "http://localhost:5000/api/detection/update"
+# Use environment variable or default to deployed server
+BACKEND_URL = os.getenv('API_URL', 'https://wildguard-ai-backend.onrender.com')
+API_BASE_URL = f"{BACKEND_URL}/api/detection/update"
 
 # Detection queue for async processing
 detection_queue = Queue(maxsize=10)

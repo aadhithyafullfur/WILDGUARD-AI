@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import API_BASE_URL from '../../config/api';
 
 const PollingDashboard = () => {
   const [summaryData, setSummaryData] = useState({
@@ -20,7 +21,7 @@ const PollingDashboard = () => {
     const fetchData = async () => {
       try {
         console.log('🔍 Fetching counters from backend...');
-        const response = await fetch('http://localhost:5000/counters');
+        const response = await fetch(`${API_BASE_URL}/counters`);
         console.log(`📊 Response status: ${response.status}`);
         
         if (response.ok) {
@@ -63,7 +64,7 @@ const PollingDashboard = () => {
     const checkForAlerts = async () => {
       try {
         console.log('🔍 Checking for new alerts...');
-        const response = await fetch('http://localhost:5000/counters');
+        const response = await fetch(`${API_BASE_URL}/counters`);
         if (response.ok) {
           const data = await response.json();
           console.log('📊 Alert check data:', data);
@@ -129,7 +130,7 @@ const PollingDashboard = () => {
 
   const handleReset = async () => {
     try {
-      const response = await fetch('http://localhost:5000/reset', {
+      const response = await fetch(`${API_BASE_URL}/reset`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import alertSoundManager from '../../utils/alertSoundManager';
+import API_BASE_URL from '../../config/api';
 import '../../utils/testAlerts'; // Import test utilities
 
 const WildguardDashboard = () => {
@@ -74,7 +75,7 @@ const WildguardDashboard = () => {
   // Initialize WebSocket connection
   useEffect(() => {
     // Connect to backend WebSocket
-    socketRef.current = io('http://localhost:5000', {
+    socketRef.current = io(API_BASE_URL, {
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
@@ -293,7 +294,7 @@ const WildguardDashboard = () => {
   useEffect(() => {
     const fetchCounters = async () => {
       try {
-        const response = await fetch('http://localhost:5000/counters');
+        const response = await fetch(`${API_BASE_URL}/counters`);
         if (response.ok) {
           const data = await response.json();
           setCounters(data);
@@ -327,7 +328,7 @@ const WildguardDashboard = () => {
   // Handle system reset
   const handleReset = async () => {
     try {
-      const response = await fetch('http://localhost:5000/reset', {
+      const response = await fetch(`${API_BASE_URL}/reset`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
