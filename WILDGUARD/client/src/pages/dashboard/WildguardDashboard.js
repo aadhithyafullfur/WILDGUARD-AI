@@ -18,15 +18,7 @@ const WildguardDashboard = () => {
     total_detections: 0
   });
 
-  // State for analytics
-  const [animalSpeciesData, setAnimalSpeciesData] = useState([
-    { name: 'Elephants', value: 0 },
-    { name: 'Tigers', value: 0 },
-    { name: 'Deer', value: 0 },
-    { name: 'Birds', value: 0 },
-    { name: 'Other', value: 0 },
-  ]);
-
+  // State for analytics - using animalDistribution instead
   const [detectionTrends, setDetectionTrends] = useState([
     { day: 'Mon', hunters: 0, animals: 0, fires: 0 },
     { day: 'Tue', hunters: 0, animals: 0, fires: 0 },
@@ -99,15 +91,6 @@ const WildguardDashboard = () => {
     
     // Update analytics based on counters
     const updateAnalytics = (counters) => {
-      // Update animal species data
-      setAnimalSpeciesData([
-        { name: 'Elephants', value: counters.elephants_detected },
-        { name: 'Tigers', value: counters.tigers_detected },
-        { name: 'Deer', value: counters.deer_detected },
-        { name: 'Birds', value: counters.birds_detected },
-        { name: 'Other', value: Math.max(0, counters.animals_detected - (counters.elephants_detected + counters.tigers_detected + counters.deer_detected + counters.birds_detected)) }
-      ]);
-      
       // Update animal distribution
       setAnimalDistribution([
         { name: 'Elephants', value: counters.elephants_detected },
@@ -260,15 +243,6 @@ const WildguardDashboard = () => {
 
   // Update analytics based on counters
   const updateAnalytics = (counters) => {
-    // Update animal species data
-    setAnimalSpeciesData([
-      { name: 'Elephants', value: counters.elephants_detected },
-      { name: 'Tigers', value: counters.tigers_detected },
-      { name: 'Deer', value: counters.deer_detected },
-      { name: 'Birds', value: counters.birds_detected },
-      { name: 'Other', value: Math.max(0, counters.animals_detected - (counters.elephants_detected + counters.tigers_detected + counters.deer_detected + counters.birds_detected)) }
-    ]);
-    
     // Update animal distribution
     setAnimalDistribution([
       { name: 'Elephants', value: counters.elephants_detected },
@@ -354,6 +328,7 @@ const WildguardDashboard = () => {
   };
 
   // Get alert styling
+  // eslint-disable-next-line no-unused-vars
   const getAlertStyle = (type) => {
     switch(type) {
       case 'HUNTER':
