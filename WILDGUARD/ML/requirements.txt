@@ -1,0 +1,24 @@
+# WILDGUARD ML Module Requirements
+# Install with: pip install -r requirements.txt
+
+# Core ML/Computer Vision
+ultralytics>=8.0.0          # YOLOv8 object detection framework
+opencv-python>=4.8.0        # Computer vision and image processing
+
+# HTTP Requests
+requests>=2.31.0            # HTTP library for backend API communication
+
+# PyTorch (required by ultralytics/YOLO)
+# Note: Install appropriate version for your system (CPU/CUDA)
+# For CPU: pip install torch torchvision
+# For CUDA: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Additional dependencies (usually installed with ultralytics)
+numpy>=1.24.0               # Numerical computing
+Pillow>=9.0.0               # Image processing
+PyYAML>=6.0                 # YAML configuration files
+tqdm>=4.65.0                # Progress bars
+matplotlib>=3.7.0           # Plotting and visualization
+scipy>=1.10.0               # Scientific computing
