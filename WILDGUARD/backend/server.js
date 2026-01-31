@@ -14,16 +14,43 @@ global.alertManager = new DetectionAlertManager();
 
 const app = express();
 
+// Allowed origins for CORS
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "https://wildguard-client.vercel.app",
+  /\.vercel\.app$/  // Allow all Vercel preview deployments
+];
+
 // Enable CORS for all routes
 app.use(cors({
-  origin: ["http://localhost:3000", "http://localhost:3001"], // Allow both frontend origins
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    
+    // Check if origin matches allowed origins
+    const isAllowed = allowedOrigins.some(allowed => {
+      if (allowed instanceof RegExp) {
+        return allowed.test(origin);
+      }
+      return allowed === origin;
+    });
+    
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Allow all origins for now
+    }
+  },
   credentials: true
 }));
 
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: ["http://localhost:3000", "http://localhost:3001"], // Allow both frontend origins
+    origin: function(origin, callback) {
+      callback(null, true); // Allow all origins for socket.io
+    },
     methods: ["GET", "POST"]
   }
 });
