@@ -29,7 +29,7 @@ ENV/
 # YOLO/ML outputs
 runs/
 *.pt
-!models/yolov8n.pt
+!models/*.pt
 
 # OS
 .DS_Store
